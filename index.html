@@ -3,856 +3,660 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDA™ — Landscape Energy Dependency Audit | Greenscape Designz</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>LEDA™ — Landscape Energy Dependency Audit | Interactive Dashboard</title>
+
+<!-- Chosen Palette: Earthy Resilience (Ink, Forest, Moss, Sage, Leaf, Pale, Cream, Gold, Amber, Red, Orange, Paper) based on source report -->
+<!-- Application Structure Plan: The SPA transitions the static report into a functional diagnostic dashboard. It prioritizes user engagement by immediately presenting an interactive "Rate Your Estate" section (Domain Sliders paired with a dynamic Radar Chart), allowing users to input their data to see real-time risk exposure. This is followed by an interactive 60-Day Stress Test checklist that calculates immediate fragility. Finally, static reference data (Benchmarks, Risk Bands, Upgrade Pathways) are presented as contextual results that the user can explore to understand their score and actionable next steps. This structure transforms passive reading into active self-assessment. -->
+<!-- Visualization & Content Choices: 
+1. Masthead -> Goal: Establish brand and context -> Method: Responsive CSS layout -> Justification: Ensures immediate recognition. 
+2. 5 Domains -> Goal: Input and Compare -> Method: Interactive HTML range sliders & Chart.js Radar Chart -> Interaction: Sliding updates the chart and calculates LEDA score -> Justification: Allows users to visualize their specific asset profile against resilient/fragile baselines dynamically. Library: Chart.js (Canvas). NO SVG. 
+3. 60-Day Test -> Goal: Fast operational check -> Method: Interactive HTML toggle buttons -> Interaction: Clicking calculates pass/fail thresholds and reveals a warning block if >= 3 fail. -> Justification: Simple, immediate interactive feedback on immediate risk.
+4. Risk Bands -> Goal: Contextualize Score -> Method: CSS highlighted cards -> Interaction: Dynamic highlighting based on the LEDA score calculated above. -> Justification: Connects abstract scores to real-world boardroom risk definitions.
+5. Upgrade Pathway -> Goal: Actionable steps -> Method: CSS Grid/Flex layout of phases -> Justification: Clear, sequential visual roadmap. NO SVG.
+-->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ink: '#0d1f0f',
+        forest: '#1a3d1e',
+        moss: '#2d5a32',
+        sage: '#4a7c50',
+        leaf: '#6aa16e',
+        pale: '#c8dfc9',
+        cream: '#f5f0e8',
+        gold: '#c9a84c',
+        amber: '#e8b84b',
+        danger: '#c0392b',
+        warn: '#d4622a',
+        paper: '#faf7f2',
+      },
+      fontFamily: {
+        sans: ['"DM Sans"', 'sans-serif'],
+        serif: ['"Playfair Display"', 'serif'],
+        mono: ['"DM Mono"', 'monospace'],
+      }
+    }
+  }
+}
+</script>
 <style>
-  :root {
-    --ink: #0d1f0f;
-    --forest: #1a3d1e;
-    --moss: #2d5a32;
-    --sage: #4a7c50;
-    --leaf: #6aa16e;
-    --pale: #c8dfc9;
-    --cream: #f5f0e8;
-    --gold: #c9a84c;
-    --amber: #e8b84b;
-    --red: #c0392b;
-    --orange: #d4622a;
-    --paper: #faf7f2;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    background: var(--paper);
-    font-family: 'DM Sans', sans-serif;
-    color: var(--ink);
-    width: 1200px;
-    margin: 0 auto;
+    background-color: theme('colors.paper');
+    color: theme('colors.ink');
   }
-
-  /* ── MASTHEAD ── */
-  .masthead {
-    background: var(--forest);
-    padding: 32px 48px 24px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: end;
-    gap: 20px;
+  .chart-container {
     position: relative;
-    overflow: hidden;
+    width: 100%;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 350px;
+    max-height: 400px;
   }
-  .masthead::before {
-    content: '';
-    position: absolute;
-    top: -60px; right: -60px;
-    width: 300px; height: 300px;
+  @media (min-width: 768px) {
+    .chart-container {
+      height: 400px;
+    }
+  }
+  
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(106,161,110,0.18) 0%, transparent 70%);
-  }
-  .masthead::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 30%;
-    width: 600px; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  }
-  .brand-lock {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .brand-eyebrow {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--leaf);
-    text-transform: uppercase;
-  }
-  .brand-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 46px;
-    font-weight: 900;
-    color: #fff;
-    line-height: 1;
-    letter-spacing: -1px;
-  }
-  .brand-title span { color: var(--amber); }
-  .brand-sub {
-    font-size: 13px;
-    font-weight: 300;
-    color: var(--pale);
-    max-width: 520px;
-    line-height: 1.5;
-    margin-top: 4px;
-  }
-  .survival-badge {
-    background: var(--gold);
-    color: var(--ink);
-    padding: 16px 20px;
-    text-align: center;
-    border-radius: 6px;
-    min-width: 140px;
-  }
-  .survival-badge .num { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 900; line-height: 1; }
-  .survival-badge .label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
-  .survival-badge .sub { font-size: 9px; font-weight: 400; color: rgba(13,31,15,0.7); margin-top: 2px; }
-
-  /* ── MAIN GRID ── */
-  .body-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto auto auto;
-    gap: 1px;
-    background: #d8d0c4;
-    border-top: 4px solid var(--gold);
-  }
-
-  .panel {
-    background: var(--paper);
-    padding: 24px 28px;
-  }
-  .panel.dark { background: var(--ink); color: #fff; }
-  .panel.forest { background: var(--forest); color: #fff; }
-  .panel.moss { background: var(--moss); color: #fff; }
-  .panel.cream { background: var(--cream); }
-  .panel.full-width { grid-column: 1 / -1; }
-  .panel.two-col { grid-column: span 2; }
-
-  .panel-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .panel-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.25;
-  }
-  .panel-label.dark-label { color: var(--leaf); }
-
-  .panel-heading {
-    font-family: 'Playfair Display', serif;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 14px;
-    line-height: 1.2;
-  }
-
-  /* ── DOMAIN TABLE ── */
-  .domain-table { width: 100%; border-collapse: collapse; }
-  .domain-table th {
-    font-family: 'DM Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--sage);
-    padding: 0 0 8px;
-    text-align: left;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-  }
-  .domain-table td {
-    padding: 9px 8px 9px 0;
-    font-size: 11.5px;
-    vertical-align: top;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    line-height: 1.4;
-  }
-  .domain-table tr:last-child td { border-bottom: none; }
-  .domain-name {
-    font-weight: 600;
-    font-size: 12px;
-    color: var(--forest);
-    white-space: nowrap;
-  }
-  .domain-icon { font-size: 16px; margin-right: 6px; }
-  .risk-pill {
-    display: inline-block;
-    font-family: 'DM Mono', monospace;
-    font-size: 8.5px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    background: rgba(192,57,43,0.1);
-    color: var(--red);
-    font-weight: 500;
-  }
-  .lever-tag {
-    display: inline-block;
-    font-size: 9.5px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    background: rgba(45,90,50,0.1);
-    color: var(--moss);
-    font-weight: 500;
-    margin-top: 3px;
-  }
-  .score-bar-wrap { display: flex; align-items: center; gap: 6px; }
-  .score-bar {
-    height: 6px;
-    border-radius: 3px;
-    background: linear-gradient(90deg, var(--leaf), var(--red));
-    min-width: 50px;
-  }
-
-  /* ── RADAR CHART ── */
-  #radar-canvas {
-    display: block;
-    margin: 0 auto;
-  }
-
-  /* ── 60 DAY TEST ── */
-  .test-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .test-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.06);
-  }
-  .test-q {
-    font-size: 11px;
-    font-weight: 400;
-    line-height: 1.4;
-    color: rgba(255,255,255,0.85);
-  }
-  .test-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-  .test-warn {
-    grid-column: 1 / -1;
-    background: rgba(192,57,43,0.2);
-    border-left: 3px solid var(--red);
-    padding: 10px 14px;
-    font-size: 11.5px;
-    font-weight: 600;
-    color: #ffb3ad;
-    border-radius: 0 4px 4px 0;
-    margin-top: 4px;
-  }
-
-  /* ── METRICS TABLE ── */
-  .metrics-table { width: 100%; border-collapse: collapse; }
-  .metrics-table th {
-    font-family: 'DM Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    padding: 0 0 8px;
-    text-align: left;
-    color: rgba(255,255,255,0.5);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
-  .metrics-table td {
-    padding: 8px 6px 8px 0;
-    font-size: 11px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.85);
-    vertical-align: middle;
-  }
-  .metrics-table tr:last-child td { border-bottom: none; }
-  .metric-name { font-weight: 500; font-size: 11.5px; color: #fff; }
-  .green-val {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #7dd87f;
-    font-weight: 500;
-  }
-  .red-val {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #ff8a80;
-    font-weight: 500;
-  }
-
-  /* ── RISK BANDS ── */
-  .risk-bands { display: flex; flex-direction: column; gap: 7px; }
-  .risk-band {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-  .risk-band::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-  }
-  .band-a { background: rgba(74,124,80,0.12); }
-  .band-a::before { background: var(--leaf); }
-  .band-b { background: rgba(201,168,76,0.12); }
-  .band-b::before { background: var(--gold); }
-  .band-c { background: rgba(212,98,42,0.15); }
-  .band-c::before { background: var(--orange); }
-  .band-d { background: rgba(192,57,43,0.18); }
-  .band-d::before { background: var(--red); }
-  .band-pct {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    font-weight: 500;
-    min-width: 55px;
-    color: var(--ink);
-  }
-  .band-title { font-size: 12px; font-weight: 600; color: var(--ink); }
-  .band-sub { font-size: 10px; color: #666; margin-top: 1px; }
-
-  /* ── UPGRADE PATHWAY ── */
-  .pathway { display: flex; flex-direction: column; gap: 0; }
-  .pathway-step {
-    display: grid;
-    grid-template-columns: 24px 1fr 1fr;
-    gap: 10px;
-    align-items: center;
-    padding: 9px 0;
-    border-bottom: 1px solid rgba(200,223,201,0.3);
-  }
-  .pathway-step:last-child { border-bottom: none; }
-  .step-num {
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--gold);
-    color: var(--ink);
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-  .step-action { font-size: 12px; font-weight: 500; color: #fff; }
-  .step-impact { font-size: 10.5px; color: var(--pale); font-style: italic; }
-  .step-arrow {
-    width: 0; height: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-left: 10px solid var(--gold);
-    opacity: 0.5;
-  }
-
-  /* ── POSITIONING STRIP ── */
-  .position-strip {
-    background: var(--gold);
-    padding: 14px 48px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-  }
-  .position-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: rgba(13,31,15,0.6);
-    margin-bottom: 4px;
-  }
-  .position-text {
-    font-family: 'Playfair Display', serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .position-pills { display: flex; gap: 10px; }
-  .pos-pill {
-    background: rgba(13,31,15,0.12);
-    color: var(--ink);
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  /* ── CTA PANEL ── */
-  .cta-panel {
-    background: var(--ink);
-    padding: 28px 48px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 32px;
-  }
-  .cta-brand {
-    font-family: 'Playfair Display', serif;
-    font-size: 28px;
-    font-weight: 900;
-    color: #fff;
-    letter-spacing: -0.5px;
-  }
-  .cta-brand span { color: var(--amber); }
-  .cta-why {
-    display: flex;
-    gap: 24px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-  }
-  .cta-why-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11.5px;
-    color: rgba(255,255,255,0.75);
-  }
-  .cta-why-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--leaf);
-    flex-shrink: 0;
-  }
-  .cta-right { text-align: center; }
-  .cta-button {
-    background: var(--gold);
-    color: var(--ink);
-    padding: 14px 28px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    background: theme('colors.gold');
     cursor: pointer;
-    border: none;
-    display: block;
-    margin-bottom: 8px;
-    white-space: nowrap;
+    margin-top: -6px;
+    box-shadow: 0 0 2px rgba(0,0,0,0.5);
   }
-  .cta-contact {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--pale);
-    letter-spacing: 0.5px;
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: theme('colors.pale');
+    border-radius: 2px;
   }
-  .cta-tagline {
-    font-size: 11px;
-    font-style: italic;
-    color: rgba(255,255,255,0.45);
-    margin-top: 8px;
-  }
-
-  /* ── FOOTER STRIP ── */
-  .footer-strip {
-    background: var(--forest);
-    padding: 8px 48px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .footer-strip span {
-    font-family: 'DM Mono', monospace;
-    font-size: 8.5px;
-    color: rgba(200,223,201,0.5);
-    letter-spacing: 1px;
-  }
-  .footer-strip .trademark { color: var(--gold); opacity: 0.7; }
-
-  /* ── SCORING NOTE ── */
-  .score-note {
-    background: rgba(201,168,76,0.12);
-    border: 1px solid rgba(201,168,76,0.3);
-    border-radius: 4px;
-    padding: 10px 14px;
-    font-size: 11px;
-    color: var(--ink);
-    line-height: 1.5;
-    margin-top: 12px;
-  }
-  .score-note strong {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--forest);
-    letter-spacing: 1px;
-    text-transform: uppercase;
+  input[type=range]:focus {
+    outline: none;
   }
 </style>
 </head>
-<body>
+<body class="antialiased min-h-screen pb-12">
 
-<!-- MASTHEAD -->
-<div class="masthead">
-  <div class="brand-lock">
-    <div class="brand-eyebrow">Greenscape Designz · Framework Document · Proprietary Methodology</div>
-    <div class="brand-title">LEDA<span>™</span></div>
-    <div class="brand-sub">Landscape Energy Dependency Audit — A risk-mapping framework to stress-test whether a landscape survives 60 days without fossil fuel input. Built for estate managers, CAPEX committees, and resilience planners.</div>
-  </div>
-  <div class="survival-badge">
-    <div class="num">60</div>
-    <div class="label">Day Survival</div>
-    <div class="sub">Stress-Test Standard</div>
-  </div>
-</div>
-
-<!-- MAIN BODY GRID -->
-<div class="body-grid">
-
-  <!-- ROW 1: DOMAINS (2-col) + RADAR (1-col) -->
-  <div class="panel two-col">
-    <div class="panel-label">01 — Five Audit Domains · Score 0–5 Each</div>
-    <div class="panel-heading">What Gets Measured</div>
-    <table class="domain-table">
-      <thead>
-        <tr>
-          <th style="width:22%">Domain</th>
-          <th style="width:32%">What You Measure</th>
-          <th style="width:24%">Failure Signal</th>
-          <th style="width:22%">Risk Lever</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="domain-icon">💧</span><span class="domain-name">Water<br>Autonomy</span></td>
-          <td>% irrigation gravity/solar-powered; on-site storage days; STP reuse</td>
-          <td><span class="risk-pill">Diesel pump &gt;50%</span></td>
-          <td><span class="lever-tag">Gravity zoning</span><br><span class="lever-tag">Solar pumps</span><br><span class="lever-tag">SuDS</span></td>
-        </tr>
-        <tr>
-          <td><span class="domain-icon">⚡</span><span class="domain-name">Energy<br>Exposure</span></td>
-          <td>% lighting/water features on DG; kWh offset by solar arrays</td>
-          <td><span class="risk-pill">&gt;60% DG reliance</span></td>
-          <td><span class="lever-tag">Solar lighting</span><br><span class="lever-tag">Microgrids</span></td>
-        </tr>
-        <tr>
-          <td><span class="domain-icon">🪨</span><span class="domain-name">Material<br>Volatility</span></td>
-          <td>Bitumen/plastic intensity; petrochemical and imported input ratios</td>
-          <td><span class="risk-pill">High petrochem content</span></td>
-          <td><span class="lever-tag">Local stone</span><br><span class="lever-tag">Stabilized earth</span><br><span class="lever-tag">Permeables</span></td>
-        </tr>
-        <tr>
-          <td><span class="domain-icon">🌿</span><span class="domain-name">Maintenance<br>Intensity</span></td>
-          <td>Mowing hours/acre/month; chemical inputs per acre per season</td>
-          <td><span class="risk-pill">Weekly mechanized cycles</span></td>
-          <td><span class="lever-tag">Native meadow</span><br><span class="lever-tag">Soil-first systems</span></td>
-        </tr>
-        <tr>
-          <td><span class="domain-icon">🌱</span><span class="domain-name">Supply Chain<br>Fragility</span></td>
-          <td>Imported species ratio; synthetic fertilizer and agrochemical reliance</td>
-          <td><span class="risk-pill">Exotic monocultures</span></td>
-          <td><span class="lever-tag">Native species</span><br><span class="lever-tag">Seed propagation</span></td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="score-note"><strong>Scoring Logic</strong> &nbsp;|&nbsp; 0 = Fully Autonomous → 5 = Highly Fossil-Dependent &nbsp;·&nbsp; <strong>LEDA Score = Sum ÷ 25 × 100 = % Risk Exposure</strong></div>
-  </div>
-
-  <div class="panel" style="background: var(--forest); display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px 16px;">
-    <div class="panel-label" style="color: var(--gold); width:100%;">05 — Visual Risk Radar</div>
-    <div style="font-family:'Playfair Display',serif; font-size:14px; color:#fff; font-weight:700; margin-bottom:12px; text-align:center;">Dependency Polygon</div>
-    <canvas id="radar-canvas" width="240" height="240"></canvas>
-    <div style="display:flex; gap:16px; margin-top:12px; justify-content:center;">
-      <div style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--pale);">
-        <div style="width:12px;height:3px;background:var(--leaf);border-radius:2px;"></div>Resilient
+  <header class="bg-forest relative overflow-hidden px-6 py-10 md:px-12 md:py-16 text-white shadow-xl">
+    <div class="absolute -top-16 -right-16 w-64 h-64 md:w-96 md:h-96 rounded-full bg-leaf opacity-20 blur-2xl"></div>
+    <div class="absolute bottom-0 left-1/4 right-1/4 h-1 bg-gradient-to-r from-transparent via-gold to-transparent"></div>
+    
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-end gap-8 relative z-10">
+      <div class="flex flex-col gap-2">
+        <div class="font-mono text-xs tracking-widest text-leaf uppercase">Greenscape Designz · Proprietary Methodology</div>
+        <h1 class="font-serif text-5xl md:text-7xl font-black tracking-tight leading-none text-white">
+          LEDA<span class="text-amber">™</span>
+        </h1>
+        <p class="text-sm md:text-base font-light text-pale max-w-2xl leading-relaxed mt-2">
+          Landscape Energy Dependency Audit — An interactive risk-mapping framework to stress-test whether an estate landscape survives 60 days without fossil fuel input. Built for estate managers, CAPEX committees, and resilience planners.
+        </p>
       </div>
-      <div style="display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--pale);">
-        <div style="width:12px;height:3px;background:var(--red);border-radius:2px;"></div>Fragile
+      <div class="bg-gold text-ink p-4 md:px-6 md:py-5 rounded-lg text-center min-w-[160px] shadow-lg shrink-0">
+        <div class="font-serif text-5xl md:text-6xl font-black leading-none">60</div>
+        <div class="font-bold text-xs tracking-wider uppercase mt-2">Day Survival</div>
+        <div class="text-[10px] opacity-80 mt-1">Stress-Test Standard</div>
       </div>
     </div>
-    <div style="font-size:9px;color:rgba(200,223,201,0.5);text-align:center;margin-top:8px;font-style:italic;">Tight polygon = resilient estate<br>Wide spikes = dependency zones</div>
-  </div>
+  </header>
 
-  <!-- ROW 2: 60-DAY TEST + METRICS + RISK BANDS -->
-  <div class="panel dark">
-    <div class="panel-label">02 — 60-Day Survival Test</div>
-    <div class="panel-heading" style="color:#fff;">Can Your Landscape Survive?</div>
-    <div class="test-grid">
-      <div class="test-item">
-        <div class="test-icon">💧</div>
-        <div class="test-q">Can irrigation run <strong style="color:#fff">without diesel</strong>?</div>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+
+    <section class="bg-white border-t-4 border-gold shadow-sm p-6 md:p-8 rounded-b-xl">
+      <header class="mb-6 border-b border-gray-100 pb-4">
+        <h2 class="font-mono text-xs tracking-widest text-gold uppercase mb-2 flex items-center gap-3">
+          01 — Interactive Audit <span class="flex-1 h-px bg-gold opacity-30"></span>
+        </h2>
+        <p class="font-serif text-2xl md:text-3xl font-bold text-ink mb-3">Rate Your Estate Dependency</p>
+        <p class="text-sm text-gray-600 max-w-3xl leading-relaxed">
+          Adjust the sliders below for each of the five core domains based on your landscape's current operational reality. A score of 0 represents full autonomy, while 5 represents total fossil fuel dependency. The radar chart will update dynamically to position your asset against resilient and fragile benchmarks.
+        </p>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        <div class="space-y-6" id="domain-sliders-container">
+          
+        </div>
+
+        <div class="bg-forest rounded-xl p-6 shadow-inner flex flex-col items-center justify-center">
+          <h3 class="font-serif text-lg font-bold text-white mb-2">Dependency Polygon</h3>
+          <p class="text-xs text-pale mb-6 text-center italic">Tight polygon = resilient estate <br> Wide spikes = high dependency</p>
+          
+          <div class="chart-container w-full">
+            <canvas id="radarChart"></canvas>
+          </div>
+
+          <div class="mt-8 text-center bg-ink/50 border border-leaf/30 rounded-lg p-4 w-full">
+            <div class="text-xs font-mono text-pale uppercase tracking-widest mb-1">Calculated LEDA Score</div>
+            <div class="font-serif text-4xl font-black text-gold"><span id="live-score">50</span>%</div>
+            <div class="text-[10px] text-gray-400 mt-1">Sum &divide; 25 &times; 100 = Risk Exposure</div>
+          </div>
+        </div>
       </div>
-      <div class="test-item">
-        <div class="test-icon">💡</div>
-        <div class="test-q">Can lighting function <strong style="color:#fff">without grid/DG</strong>?</div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      
+      <div class="lg:col-span-7 bg-ink text-white shadow-sm p-6 md:p-8 rounded-xl border border-gray-800">
+        <header class="mb-6">
+          <h2 class="font-mono text-xs tracking-widest text-leaf uppercase mb-2 flex items-center gap-3">
+            02 — 60-Day Survival Test <span class="flex-1 h-px bg-leaf opacity-30"></span>
+          </h2>
+          <p class="font-serif text-2xl font-bold mb-2">Can Your Landscape Survive?</p>
+          <p class="text-sm text-gray-400">
+            Toggle the operational capabilities of your estate below. If you answer "No" (indicating failure without fossil fuel inputs) to 3 or more critical questions, systemic operational fragility is confirmed.
+          </p>
+        </header>
+
+        <div class="space-y-3" id="stress-test-container">
+          
+        </div>
+
+        <div id="fragility-warning" class="hidden mt-6 bg-danger/20 border-l-4 border-danger p-4 rounded-r-md">
+          <div class="font-bold text-red-300 text-sm flex items-center gap-2">
+            <span>⚠</span> Operational Fragility Confirmed
+          </div>
+          <div class="text-xs text-red-200 mt-1">3 or more critical systems fail under the 60-day fossil fuel stress test. Immediate mitigation required.</div>
+        </div>
+        <div id="fragility-pass" class="mt-6 bg-leaf/20 border-l-4 border-leaf p-4 rounded-r-md">
+          <div class="font-bold text-green-300 text-sm flex items-center gap-2">
+            <span>✓</span> Baseline Autonomy Demonstrated
+          </div>
+          <div class="text-xs text-green-200 mt-1">Your core systems demonstrate fundamental resilience without continuous input dependencies.</div>
+        </div>
       </div>
-      <div class="test-item">
-        <div class="test-icon">🌾</div>
-        <div class="test-q">Can soil fertility sustain <strong style="color:#fff">without synthetic fertilizer</strong>?</div>
+
+      <div class="lg:col-span-5 bg-cream shadow-sm p-6 md:p-8 rounded-xl border border-gray-200">
+        <header class="mb-6">
+          <h2 class="font-mono text-xs tracking-widest text-moss uppercase mb-2 flex items-center gap-3">
+            03 — Risk Bands <span class="flex-1 h-px bg-moss opacity-30"></span>
+          </h2>
+          <p class="font-serif text-2xl font-bold text-ink mb-2">Current Exposure Level</p>
+          <p class="text-sm text-gray-700">
+            Based on your LEDA Score above, your asset currently sits within the highlighted risk band.
+          </p>
+        </header>
+
+        <div class="space-y-3 flex flex-col" id="risk-bands-container">
+          
+        </div>
       </div>
-      <div class="test-item">
-        <div class="test-icon">🔧</div>
-        <div class="test-q">Can maintenance continue with <strong style="color:#fff">manual + electric tools</strong>?</div>
+
+    </section>
+
+    <section class="bg-white shadow-sm p-6 md:p-8 rounded-xl border border-gray-200">
+      <header class="mb-6">
+        <h2 class="font-mono text-xs tracking-widest text-gold uppercase mb-2 flex items-center gap-3">
+          04 — Quantitative Benchmarks <span class="flex-1 h-px bg-gold opacity-30"></span>
+        </h2>
+        <p class="font-serif text-2xl font-bold text-ink mb-2">Plug-and-Play Indicators</p>
+        <p class="text-sm text-gray-600">
+          Use these metric thresholds to quickly evaluate specific operational areas. Target the resilient metrics to lower your overall LEDA score.
+        </p>
+      </header>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[600px]">
+          <thead>
+            <tr>
+              <th class="font-mono text-[10px] tracking-wider text-gray-500 uppercase pb-4 border-b border-gray-200 w-1/3">Key Metric</th>
+              <th class="font-mono text-[10px] tracking-wider text-leaf font-bold uppercase pb-4 border-b border-gray-200 w-1/3">✓ Resilient Target</th>
+              <th class="font-mono text-[10px] tracking-wider text-danger font-bold uppercase pb-4 border-b border-gray-200 w-1/3">✗ Red Zone Danger</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm">
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">On-site water storage capacity</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&ge; 30–60 days</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&lt; 10 days</td>
+            </tr>
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">Energy load solar offset</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&ge; 40% load</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&lt; 10% load</td>
+            </tr>
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">Intensive lawn area</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&le; 15% softscape</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&gt; 40% softscape</td>
+            </tr>
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">Native & adapted species ratio</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&ge; 60% of plantings</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&lt; 30% of plantings</td>
+            </tr>
+            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">Synthetic fertilizer application</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&lt; 25 kg/acre/yr</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&gt; 75 kg/acre/yr</td>
+            </tr>
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="py-4 font-medium text-ink">Mechanized mowing frequency</td>
+              <td class="py-4 font-mono text-leaf bg-leaf/5 px-3 rounded">&le; 2&times;/month</td>
+              <td class="py-4 font-mono text-danger bg-danger/5 px-3 rounded">&ge; 4&times;/month</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="test-item" style="grid-column: 1/-1;">
-        <div class="test-icon">🌊</div>
-        <div class="test-q">Can water be retained <strong style="color:#fff">without flood risk downstream</strong>?</div>
+    </section>
+
+    <section class="bg-forest text-white p-6 md:p-8 rounded-xl shadow-lg relative overflow-hidden border border-moss">
+      <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 20px 20px;"></div>
+      
+      <header class="mb-8 relative z-10">
+        <h2 class="font-mono text-xs tracking-widest text-gold uppercase mb-2 flex items-center gap-3">
+          05 — Upgrade Pathway <span class="flex-1 h-px bg-gold opacity-30"></span>
+        </h2>
+        <p class="font-serif text-2xl font-bold mb-2">From Decorative to Defensive</p>
+        <p class="text-sm text-pale max-w-3xl">
+          A phased, CAPEX-linked approach to migrating an asset from high operational exposure to total systemic resilience. Implementing these steps moves the radar footprint inward.
+        </p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 relative z-10">
+        
+        <div class="bg-white/5 border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:bg-white/10 transition-colors">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-leaf"></div>
+          <div class="font-mono text-[10px] text-gold tracking-widest mb-3">PHASE 1</div>
+          <div class="font-bold text-sm text-white mb-2 leading-tight">Solar Irrigation Retrofit</div>
+          <div class="text-xs text-pale/80 italic line-clamp-3">Diesel elimination across all critical pumping systems. Immediate OPEX win.</div>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:bg-white/10 transition-colors">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-gold"></div>
+          <div class="font-mono text-[10px] text-gold tracking-widest mb-3">PHASE 2</div>
+          <div class="font-bold text-sm text-white mb-2 leading-tight">Lawn-to-Meadow Conversion</div>
+          <div class="text-xs text-pale/80 italic line-clamp-3">Dramatic reduction in mechanized labor. Mowing hours and chemical needs plummet.</div>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:bg-white/10 transition-colors">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-amber"></div>
+          <div class="font-mono text-[10px] text-gold tracking-widest mb-3">PHASE 3</div>
+          <div class="font-bold text-sm text-white mb-2 leading-tight">SuDS Integration</div>
+          <div class="text-xs text-pale/80 italic line-clamp-3">Sustainable Drainage Systems installed. Water-energy resilience gained, flood liability removed.</div>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:bg-white/10 transition-colors">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-warn"></div>
+          <div class="font-mono text-[10px] text-gold tracking-widest mb-3">PHASE 4</div>
+          <div class="font-bold text-sm text-white mb-2 leading-tight">Native Plant Intensification</div>
+          <div class="text-xs text-pale/80 italic line-clamp-3">Transitioning away from exotics to secure full synthetic fertilizer independence.</div>
+        </div>
+
+        <div class="bg-white/5 border border-white/10 rounded-lg p-5 relative overflow-hidden group hover:bg-white/10 transition-colors">
+          <div class="absolute top-0 left-0 right-0 h-1 bg-danger"></div>
+          <div class="font-mono text-[10px] text-gold tracking-widest mb-3">PHASE 5</div>
+          <div class="font-bold text-sm text-white mb-2 leading-tight">Material Substitution</div>
+          <div class="text-xs text-pale/80 italic line-clamp-3">Replacing petro-intensive hardscapes. Cost volatility hedged; long-term supply chain de-risked.</div>
+        </div>
+
       </div>
-      <div class="test-warn">⚠ If 3 or more answers are "No" → Operational Fragility Confirmed</div>
+    </section>
+
+    <div class="bg-gold px-6 py-4 rounded-xl shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="text-center md:text-left">
+        <div class="font-mono text-[10px] tracking-widest text-ink/70 uppercase mb-1">Positioning Insight</div>
+        <div class="font-serif text-lg md:text-xl font-bold text-ink">This is not Sustainability. It is Operational Continuity.</div>
+      </div>
+      <div class="flex flex-wrap justify-center gap-2">
+        <span class="bg-ink/10 text-ink text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">📊 Boardroom Ready</span>
+        <span class="bg-ink/10 text-ink text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">💼 CAPEX Tool</span>
+        <span class="bg-ink/10 text-ink text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap">🛡️ Risk Mitigation</span>
+      </div>
     </div>
-  </div>
 
-  <div class="panel dark" style="background:#111d13;">
-    <div class="panel-label">03 — Quantitative Benchmarks</div>
-    <div class="panel-heading" style="color:#fff; font-size:15px;">Plug-and-Play Indicators</div>
-    <table class="metrics-table">
-      <thead>
-        <tr>
-          <th>Metric</th>
-          <th style="color:#7dd87f">✓ Resilient</th>
-          <th style="color:#ff8a80">✗ Red Zone</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><span class="metric-name">On-site water storage</span></td>
-          <td><span class="green-val">≥ 30–60 days</span></td>
-          <td><span class="red-val">&lt; 10 days</span></td>
-        </tr>
-        <tr>
-          <td><span class="metric-name">Solar offset</span></td>
-          <td><span class="green-val">≥ 40% load</span></td>
-          <td><span class="red-val">&lt; 10%</span></td>
-        </tr>
-        <tr>
-          <td><span class="metric-name">Lawn area</span></td>
-          <td><span class="green-val">≤ 15% softscape</span></td>
-          <td><span class="red-val">&gt; 40%</span></td>
-        </tr>
-        <tr>
-          <td><span class="metric-name">Native species ratio</span></td>
-          <td><span class="green-val">≥ 60%</span></td>
-          <td><span class="red-val">&lt; 30%</span></td>
-        </tr>
-        <tr>
-          <td><span class="metric-name">Synthetic fertilizer</span></td>
-          <td><span class="green-val">&lt; 25 kg/acre/yr</span></td>
-          <td><span class="red-val">&gt; 75 kg/acre/yr</span></td>
-        </tr>
-        <tr>
-          <td><span class="metric-name">Mechanized mowing</span></td>
-          <td><span class="green-val">≤ 2×/month</span></td>
-          <td><span class="red-val">≥ 4×/month</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  </main>
 
-  <div class="panel cream">
-    <div class="panel-label" style="color:var(--moss);">04 — LEDA Risk Bands</div>
-    <div class="panel-heading">How Exposed Are You?</div>
-    <div class="risk-bands">
-      <div class="risk-band band-a">
+  <footer class="bg-ink mt-12 text-white border-t-8 border-forest">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div>
-          <div class="band-pct" style="color:var(--moss);">0 – 25%</div>
+          <h2 class="font-serif text-3xl md:text-4xl font-black text-white mb-1">
+            <span class="text-gold">Greenscape</span> Designz
+          </h2>
+          <p class="text-xs text-white/50 italic mb-6">Certified LEDA™ Auditors · Landscape Resilience Specialists</p>
+          
+          <ul class="space-y-3 text-sm text-white/80">
+            <li class="flex items-center gap-3"><span class="w-1.5 h-1.5 rounded-full bg-leaf shrink-0"></span> Proprietary LEDA™ methodology — developed in-field</li>
+            <li class="flex items-center gap-3"><span class="w-1.5 h-1.5 rounded-full bg-leaf shrink-0"></span> Boardroom-ready risk report with upgrade roadmap</li>
+            <li class="flex items-center gap-3"><span class="w-1.5 h-1.5 rounded-full bg-leaf shrink-0"></span> Independent audit — not a product sales exercise</li>
+            <li class="flex items-center gap-3"><span class="w-1.5 h-1.5 rounded-full bg-leaf shrink-0"></span> Proven across residential estates & commercial assets</li>
+          </ul>
         </div>
-        <div>
-          <div class="band-title">Infrastructure-Grade Landscape</div>
-          <div class="band-sub">Fully autonomous, investment-ready asset</div>
-        </div>
-      </div>
-      <div class="risk-band band-b">
-        <div>
-          <div class="band-pct" style="color:#8a6b00;">26 – 50%</div>
-        </div>
-        <div>
-          <div class="band-title">Moderately Exposed</div>
-          <div class="band-sub">Targeted upgrades deliver strong ROI</div>
-        </div>
-      </div>
-      <div class="risk-band band-c">
-        <div>
-          <div class="band-pct" style="color:var(--orange);">51 – 75%</div>
-        </div>
-        <div>
-          <div class="band-title">High OPEX Vulnerability</div>
-          <div class="band-sub">Systemic energy cost exposure; boardroom risk</div>
-        </div>
-      </div>
-      <div class="risk-band band-d">
-        <div>
-          <div class="band-pct" style="color:var(--red);">76 – 100%</div>
-        </div>
-        <div>
-          <div class="band-title">Disruption-Prone Asset</div>
-          <div class="band-sub">Operational continuity at risk; immediate action required</div>
+        
+        <div class="md:text-right bg-white/5 p-8 rounded-xl border border-white/10 flex flex-col items-center md:items-end text-center md:text-right">
+          <p class="font-serif text-xl font-bold mb-4">"Your landscape is an asset.<br>We audit it like one."</p>
+          <button class="bg-gold hover:bg-amber text-ink font-bold text-sm uppercase tracking-wider px-8 py-4 rounded transition-colors mb-4 w-full md:w-auto shadow-lg">
+            Book Your LEDA™ Audit &rarr;
+          </button>
+          <div class="font-mono text-[10px] text-pale/70 tracking-widest leading-relaxed">
+            greenscapedesignz.com<br>
+            @greenscapedesignz
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- ROW 3: UPGRADE PATHWAY (full width) -->
-  <div class="panel forest full-width" style="padding: 20px 48px;">
-    <div class="panel-label" style="color: var(--gold);">06 — Upgrade Pathway · Decorative → Defensive</div>
-    <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 4px;">
-      <div style="background:rgba(255,255,255,0.06); border-radius:4px; padding:14px 16px; position:relative; overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--leaf);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">PHASE 1</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Solar Irrigation Retrofit</div>
-        <div style="font-size:10.5px;color:var(--pale);font-style:italic;">Diesel elimination across all pump systems</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.06); border-radius:4px; padding:14px 16px; position:relative; overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--gold);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">PHASE 2</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Lawn-to-Meadow Conversion</div>
-        <div style="font-size:10.5px;color:var(--pale);font-style:italic;">Dramatic OPEX reduction; mowing eliminated</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.06); border-radius:4px; padding:14px 16px; position:relative; overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--amber);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">PHASE 3</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">SuDS Integration</div>
-        <div style="font-size:10.5px;color:var(--pale);font-style:italic;">Water-energy resilience, flood liability removed</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.06); border-radius:4px; padding:14px 16px; position:relative; overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--orange);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">PHASE 4</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Native Planting Intensification</div>
-        <div style="font-size:10.5px;color:var(--pale);font-style:italic;">Full fertilizer independence achieved</div>
-      </div>
-      <div style="background:rgba(255,255,255,0.06); border-radius:4px; padding:14px 16px; position:relative; overflow:hidden;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);"></div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px;">PHASE 5</div>
-        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">Material Substitution</div>
-        <div style="font-size:10.5px;color:var(--pale);font-style:italic;">Cost volatility hedge; supply chain de-risked</div>
-      </div>
+    
+    <div class="bg-[#081209] py-4 px-6 text-center md:flex md:justify-between md:text-left items-center font-mono text-[8px] tracking-widest text-white/40 border-t border-white/5">
+      <p class="mb-2 md:mb-0">LEDA™ IS A PROPRIETARY FRAMEWORK OF GREENSCAPE DESIGNZ · ALL RIGHTS RESERVED</p>
+      <p class="text-gold/50">LANDSCAPE ENERGY DEPENDENCY AUDIT™ · LICENSING ENQUIRIES WELCOME</p>
     </div>
-  </div>
-
-</div>
-
-<!-- POSITIONING STRIP -->
-<div class="position-strip">
-  <div>
-    <div class="position-label">Positioning Insight</div>
-    <div class="position-text">This is not Sustainability. It is Operational Continuity Planning for Outdoor Assets.</div>
-  </div>
-  <div class="position-pills">
-    <div class="pos-pill">📊 Boardroom Discussion</div>
-    <div class="pos-pill">💼 CAPEX Justification Tool</div>
-    <div class="pos-pill">🛡️ Insurance Conversation</div>
-  </div>
-</div>
-
-<!-- CTA PANEL -->
-<div class="cta-panel">
-  <div>
-    <div class="cta-brand"><span>Greenscape</span> Designz</div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.5);font-style:italic;margin:4px 0 10px;">Certified LEDA™ Auditors · Landscape Resilience Specialists</div>
-    <div class="cta-why">
-      <div class="cta-why-item"><div class="cta-why-dot"></div>Proprietary LEDA™ methodology — developed in-field</div>
-      <div class="cta-why-item"><div class="cta-why-dot"></div>Full 5-domain scoring with radar visualization</div>
-      <div class="cta-why-item"><div class="cta-why-dot"></div>Boardroom-ready risk report with upgrade roadmap</div>
-      <div class="cta-why-item"><div class="cta-why-dot"></div>CAPEX-linked phased implementation planning</div>
-      <div class="cta-why-item"><div class="cta-why-dot"></div>Independent audit — not a product sales exercise</div>
-      <div class="cta-why-item"><div class="cta-why-dot"></div>Proven across residential estates, commercial assets &amp; institutions</div>
-    </div>
-  </div>
-  <div class="cta-right">
-    <button class="cta-button">→ Book Your LEDA™ Audit</button>
-    <div class="cta-contact">greenscapedesignz.com<br>@greenscapedesignz</div>
-    <div class="cta-tagline">"Your landscape is an asset.<br>We audit it like one."</div>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<div class="footer-strip">
-  <span>LEDA™ IS A PROPRIETARY FRAMEWORK OF GREENSCAPE DESIGNZ · ALL RIGHTS RESERVED</span>
-  <span class="trademark">LANDSCAPE ENERGY DEPENDENCY AUDIT™ · FOR LICENSING ENQUIRIES CONTACT GREENSCAPE DESIGNZ</span>
-</div>
+  </footer>
 
 <script>
-// Radar Chart
-const canvas = document.getElementById('radar-canvas');
-const ctx = canvas.getContext('2d');
-const cx = 120, cy = 125, r = 95;
-const axes = ['Water', 'Energy', 'Materials', 'Maint.', 'Supply'];
-const N = axes.length;
+  const domains = [
+    {
+      id: "water",
+      icon: "💧",
+      name: "Water Autonomy",
+      desc: "Irrigation gravity/solar vs. diesel dependence. On-site storage metrics.",
+      lever: "Gravity zoning, Solar pumps",
+      failure: "Diesel pump > 50%",
+      value: 2.5
+    },
+    {
+      id: "energy",
+      icon: "⚡",
+      name: "Energy Exposure",
+      desc: "% lighting/water features on DG grid. Solar offsets.",
+      lever: "Solar lighting, Microgrids",
+      failure: "> 60% DG reliance",
+      value: 2.5
+    },
+    {
+      id: "materials",
+      icon: "🪨",
+      name: "Material Volatility",
+      desc: "Intensity of bitumen/plastics vs local natural materials.",
+      lever: "Local stone, Permeables",
+      failure: "High petrochem content",
+      value: 2.5
+    },
+    {
+      id: "maint",
+      icon: "🌿",
+      name: "Maint. Intensity",
+      desc: "Mowing hours/acre. Chemical inputs volume/season.",
+      lever: "Native meadow, Soil-first",
+      failure: "Weekly mechanized cycles",
+      value: 2.5
+    },
+    {
+      id: "supply",
+      icon: "🌱",
+      name: "Supply Fragility",
+      desc: "Imported exotic species vs native stock. Fertilizer reliance.",
+      lever: "Native species, Seed propagation",
+      failure: "Exotic monocultures",
+      value: 2.5
+    }
+  ];
 
-function polar(angle, radius) {
-  return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)];
-}
+  const testQuestions = [
+    { q: "Can irrigation run <strong>without diesel/grid power</strong>?", id: "t1", passed: true, icon: "💧" },
+    { q: "Can essential lighting function <strong>without the main grid/DG</strong>?", id: "t2", passed: true, icon: "💡" },
+    { q: "Can soil fertility sustain <strong>without synthetic chemical fertilizer</strong>?", id: "t3", passed: true, icon: "🌾" },
+    { q: "Can maintenance continue utilizing only <strong>manual + electric tools</strong>?", id: "t4", passed: true, icon: "🔧" },
+    { q: "Can extreme rainfall be retained <strong>without downstream flood risk</strong>?", id: "t5", passed: true, icon: "🌊" }
+  ];
 
-function drawPolygon(values, color, fill, lineW) {
-  ctx.beginPath();
-  values.forEach((v, i) => {
-    const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-    const dist = (v / 5) * r;
-    const [x, y] = polar(angle, dist);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineW;
-  ctx.stroke();
-}
+  const riskBands = [
+    { range: [0, 25], title: "Infrastructure-Grade", desc: "Fully autonomous, investment-ready asset.", colorClass: "bg-leaf text-white", borderClass: "border-leaf", tx: "text-leaf" },
+    { range: [26, 50], title: "Moderately Exposed", desc: "Targeted upgrades will deliver strong ROI.", colorClass: "bg-gold text-ink", borderClass: "border-gold", tx: "text-gold" },
+    { range: [51, 75], title: "High OPEX Vulnerability", desc: "Systemic energy cost exposure; boardroom risk.", colorClass: "bg-warn text-white", borderClass: "border-warn", tx: "text-warn" },
+    { range: [76, 100], title: "Disruption-Prone Asset", desc: "Operational continuity at risk; immediate action required.", colorClass: "bg-danger text-white", borderClass: "border-danger", tx: "text-danger" }
+  ];
 
-// Grid rings
-for (let ring = 1; ring <= 5; ring++) {
-  ctx.beginPath();
-  for (let i = 0; i < N; i++) {
-    const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-    const [x, y] = polar(angle, (ring / 5) * r);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  const optimalData = [1.2, 1.5, 1, 1.3, 1.4];
+  const fragileData = [4.1, 3.8, 4.4, 3.6, 4.2];
+
+  let currentLedaScore = 50;
+  let radarChartInstance = null;
+
+  function initSliders() {
+    const container = document.getElementById('domain-sliders-container');
+    container.innerHTML = '';
+    
+    domains.forEach((dom, index) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = "bg-gray-50 p-4 rounded-lg border border-gray-100 hover:border-gold transition-colors";
+      wrapper.innerHTML = `
+        <div class="flex justify-between items-start mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">${dom.icon}</span>
+            <div>
+              <div class="font-bold text-sm text-ink leading-none">${dom.name}</div>
+              <div class="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-mono">Lever: ${dom.lever}</div>
+            </div>
+          </div>
+          <div class="bg-ink text-white font-mono text-xs px-2 py-1 rounded" id="val-${index}">
+            ${dom.value.toFixed(1)}
+          </div>
+        </div>
+        <p class="text-xs text-gray-600 mb-4 line-clamp-1">${dom.desc}</p>
+        <div class="relative w-full mb-1">
+          <input type="range" min="0" max="5" step="0.1" value="${dom.value}" data-idx="${index}" class="domain-slider">
+          <div class="flex justify-between mt-1 px-1">
+            <span class="text-[9px] font-mono text-leaf uppercase tracking-wider">Autonomous (0)</span>
+            <span class="text-[9px] font-mono text-danger uppercase tracking-wider">Dependent (5)</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(wrapper);
+    });
+
+    document.querySelectorAll('.domain-slider').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const idx = e.target.getAttribute('data-idx');
+        const val = parseFloat(e.target.value);
+        domains[idx].value = val;
+        document.getElementById(`val-${idx}`).innerText = val.toFixed(1);
+        updateScoreAndChart();
+      });
+    });
   }
-  ctx.closePath();
-  ctx.strokeStyle = 'rgba(200,223,201,0.18)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
 
-// Axis lines
-for (let i = 0; i < N; i++) {
-  const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-  const [x, y] = polar(angle, r);
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(x, y);
-  ctx.strokeStyle = 'rgba(200,223,201,0.2)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
+  function initTest() {
+    const container = document.getElementById('stress-test-container');
+    container.innerHTML = '';
+    
+    testQuestions.forEach((t, idx) => {
+      const btn = document.createElement('button');
+      btn.className = `w-full text-left p-4 rounded-lg border text-sm transition-all flex items-center justify-between gap-4 ${t.passed ? 'bg-leaf/10 border-leaf/30 text-white' : 'bg-danger/20 border-danger text-white'}`;
+      
+      btn.innerHTML = `
+        <div class="flex items-center gap-3">
+          <span class="text-lg opacity-80">${t.icon}</span>
+          <span class="font-light">${t.q}</span>
+        </div>
+        <div class="shrink-0 font-bold font-mono text-xs px-3 py-1 rounded ${t.passed ? 'bg-leaf text-ink' : 'bg-danger text-white'}">
+          ${t.passed ? 'YES' : 'NO'}
+        </div>
+      `;
+      
+      btn.addEventListener('click', () => {
+        testQuestions[idx].passed = !testQuestions[idx].passed;
+        initTest(); 
+        evaluateTest();
+      });
+      
+      container.appendChild(btn);
+    });
+  }
 
-// Resilient polygon
-drawPolygon([1.2, 1.5, 1, 1.3, 1.4], '#6aa16e', 'rgba(106,161,110,0.2)', 2);
-// Fragile polygon
-drawPolygon([4.1, 3.8, 4.4, 3.6, 4.2], '#c0392b', 'rgba(192,57,43,0.15)', 2);
+  function evaluateTest() {
+    const fails = testQuestions.filter(t => !t.passed).length;
+    const warningEl = document.getElementById('fragility-warning');
+    const passEl = document.getElementById('fragility-pass');
+    
+    if(fails >= 3) {
+      warningEl.classList.remove('hidden');
+      passEl.classList.add('hidden');
+    } else {
+      warningEl.classList.add('hidden');
+      passEl.classList.remove('hidden');
+    }
+  }
 
-// Axis labels
-ctx.font = '600 10px "DM Sans", sans-serif';
-ctx.fillStyle = 'rgba(200,223,201,0.85)';
-ctx.textAlign = 'center';
-ctx.textBaseline = 'middle';
-const labelOffset = 14;
-axes.forEach((label, i) => {
-  const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-  const [x, y] = polar(angle, r + labelOffset);
-  ctx.fillText(label, x, y);
-});
+  function initRiskBands() {
+    const container = document.getElementById('risk-bands-container');
+    container.innerHTML = '';
+    
+    riskBands.forEach((band) => {
+      const isActive = currentLedaScore >= band.range[0] && currentLedaScore <= band.range[1];
+      
+      const el = document.createElement('div');
+      el.className = `p-4 rounded-lg border-l-4 transition-all duration-300 flex items-center gap-4 ${isActive ? 'bg-white shadow-md scale-[1.02] ' + band.borderClass : 'bg-transparent border-gray-200 opacity-60'}`;
+      
+      el.innerHTML = `
+        <div class="w-16 shrink-0 text-right">
+          <div class="font-mono text-xs font-bold ${isActive ? band.tx : 'text-gray-500'}">
+            ${band.range[0]}-${band.range[1]}%
+          </div>
+        </div>
+        <div>
+          <div class="font-bold text-sm ${isActive ? 'text-ink' : 'text-gray-600'}">${band.title}</div>
+          <div class="text-xs text-gray-500 mt-0.5 leading-tight">${band.desc}</div>
+        </div>
+      `;
+      container.appendChild(el);
+    });
+  }
 
-// Score dots - resilient
-[1.2, 1.5, 1, 1.3, 1.4].forEach((v, i) => {
-  const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-  const [x, y] = polar(angle, (v / 5) * r);
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = '#6aa16e';
-  ctx.fill();
-});
-// Score dots - fragile
-[4.1, 3.8, 4.4, 3.6, 4.2].forEach((v, i) => {
-  const angle = (Math.PI * 2 * i / N) - Math.PI / 2;
-  const [x, y] = polar(angle, (v / 5) * r);
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = '#c0392b';
-  ctx.fill();
-});
+  function updateScoreAndChart() {
+    const sum = domains.reduce((acc, cur) => acc + cur.value, 0);
+    currentLedaScore = Math.round((sum / 25) * 100);
+    
+    const scoreDisplay = document.getElementById('live-score');
+    scoreDisplay.innerText = currentLedaScore;
+    
+    if (currentLedaScore < 26) scoreDisplay.className = "text-leaf";
+    else if (currentLedaScore < 51) scoreDisplay.className = "text-gold";
+    else if (currentLedaScore < 76) scoreDisplay.className = "text-warn";
+    else scoreDisplay.className = "text-danger";
 
-// Center dot
-ctx.beginPath();
-ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-ctx.fillStyle = 'rgba(200,223,201,0.4)';
-ctx.fill();
+    initRiskBands();
+
+    if(radarChartInstance) {
+      radarChartInstance.data.datasets[0].data = domains.map(d => d.value);
+      radarChartInstance.update();
+    }
+  }
+
+  function initChart() {
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    
+    Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+    Chart.defaults.font.family = '"DM Sans", sans-serif';
+
+    radarChartInstance = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: domains.map(d => d.name),
+        datasets: [
+          {
+            label: 'Your Estate',
+            data: domains.map(d => d.value),
+            backgroundColor: 'rgba(201, 168, 76, 0.4)', 
+            borderColor: '#c9a84c', 
+            pointBackgroundColor: '#c9a84c',
+            borderWidth: 3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            order: 1
+          },
+          {
+            label: 'Resilient Baseline',
+            data: optimalData,
+            backgroundColor: 'rgba(106, 161, 110, 0.15)',
+            borderColor: '#6aa16e',
+            pointBackgroundColor: '#6aa16e',
+            borderWidth: 1.5,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            fill: true,
+            order: 3
+          },
+          {
+            label: 'Fragile Baseline',
+            data: fragileData,
+            backgroundColor: 'rgba(192, 57, 43, 0.05)',
+            borderColor: '#c0392b',
+            pointBackgroundColor: '#c0392b',
+            borderWidth: 1.5,
+            borderDash: [2, 4],
+            pointRadius: 0,
+            fill: true,
+            order: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+            grid: { color: 'rgba(255, 255, 255, 0.1)', circular: true },
+            pointLabels: {
+              color: 'rgba(255, 255, 255, 0.9)',
+              font: { size: 11, weight: 'bold', family: '"DM Mono", monospace' }
+            },
+            ticks: {
+              display: false,
+              min: 0,
+              max: 5,
+              stepSize: 1
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 15, font: {size: 11} }
+          },
+          tooltip: {
+            backgroundColor: '#0d1f0f',
+            titleFont: { family: '"DM Mono", monospace', size: 12 },
+            bodyFont: { family: '"DM Sans", sans-serif', size: 13 },
+            padding: 12,
+            cornerRadius: 4,
+            callbacks: {
+              label: function(context) {
+                return ` ${context.dataset.label}: ${context.raw.toFixed(1)} / 5.0`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initSliders();
+    initChart();
+    updateScoreAndChart();
+    initTest();
+    evaluateTest();
+  });
 </script>
 </body>
 </html>
