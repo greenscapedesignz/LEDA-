@@ -67,30 +67,51 @@ tailwind.config = {
     }
   }
   
+  /* Robust Cross-Browser Slider Styling */
   input[type=range] {
     -webkit-appearance: none;
     width: 100%;
     background: transparent;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    background: theme('colors.gold');
-    cursor: pointer;
-    margin-top: -6px;
-    box-shadow: 0 0 2px rgba(0,0,0,0.5);
-  }
-  input[type=range]::-webkit-slider-runnable-track {
-    width: 100%;
-    height: 4px;
-    cursor: pointer;
-    background: theme('colors.pale');
-    border-radius: 2px;
+    padding: 10px 0;
   }
   input[type=range]:focus {
     outline: none;
+  }
+  /* WebKit (Chrome, Safari, Edge) */
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 22px;
+    width: 22px;
+    border-radius: 50%;
+    background: #c9a84c; /* Gold */
+    cursor: pointer;
+    margin-top: -8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    border: 2px solid #fff;
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #c8dfc9; /* Pale green */
+    border-radius: 3px;
+  }
+  /* Mozilla Firefox */
+  input[type=range]::-moz-range-thumb {
+    height: 22px;
+    width: 22px;
+    border-radius: 50%;
+    background: #c9a84c;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: #c8dfc9;
+    border-radius: 3px;
   }
 </style>
 </head>
